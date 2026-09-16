@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.db.session import get_db
+from app.main import app
 
 # Fix Windows asyncpg event loop issue
 if sys.platform == "win32":
@@ -31,3 +33,26 @@ async def db_session(test_engine):
     async with async_session() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture(autouse=True)
+def override_get_db(test_engine):
+    async_session = async_sessionmaker(
+        bind=test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    async def _get_db_override():
+        async with async_session() as session:
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+
+    app.dependency_overrides[get_db] = _get_db_override
+    yield
+    app.dependency_overrides.pop(get_db, None)

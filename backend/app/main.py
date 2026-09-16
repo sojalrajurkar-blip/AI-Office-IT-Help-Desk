@@ -35,6 +35,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount API v1 Router
+from app.api.v1 import api_v1_router
+app.include_router(api_v1_router, prefix=settings.API_V1_STR)
+
+
 
 @app.get("/api/health", status_code=status.HTTP_200_OK, tags=["System"])
 async def health_check(db: AsyncSession = Depends(get_db)):
