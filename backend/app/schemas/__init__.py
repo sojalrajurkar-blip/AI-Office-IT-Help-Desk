@@ -20,6 +20,16 @@ from app.schemas.case import (
     TimelineEventResponse,
 )
 
+from app.schemas.ai import (
+    AICaseAnalysisResponse,
+    AICaseAnalysisReviewRequest,
+    AIDraftMessageRequest,
+    AIDraftMessageResponse,
+    AIDuplicateCheckRequest,
+    AIDuplicateCheckResponse,
+    AIDuplicateMatch,
+)
+
 __all__ = [
     "UserRegister",
     "UserLogin",
@@ -37,4 +47,11 @@ __all__ = [
     "CaseResponse",
     "CaseListResponse",
     "TimelineEventResponse",
+    "AICaseAnalysisResponse",
+    "AICaseAnalysisReviewRequest",
+    "AIDraftMessageRequest",
+    "AIDraftMessageResponse",
+    "AIDuplicateCheckRequest",
+    "AIDuplicateCheckResponse",
+    "AIDuplicateMatch",
 ]

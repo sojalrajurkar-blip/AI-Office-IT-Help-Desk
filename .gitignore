@@ -2,6 +2,8 @@
 .env
 .env.local
 *.env
+*progress*.md
+
 
 # Python
 __pycache__/
