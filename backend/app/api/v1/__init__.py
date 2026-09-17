@@ -8,6 +8,7 @@ from app.api.v1.ai import router as ai_router
 from app.api.v1.sla import router as sla_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.resolution import router as resolution_router
+from app.api.v1.dashboard import router as dashboard_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(auth_router)
@@ -19,7 +20,9 @@ api_v1_router.include_router(ai_router)
 api_v1_router.include_router(sla_router)
 api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(resolution_router)
+api_v1_router.include_router(dashboard_router)
 
 __all__ = ["api_v1_router"]
+
 
 

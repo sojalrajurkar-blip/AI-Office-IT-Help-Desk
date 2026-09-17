@@ -59,6 +59,18 @@ from app.schemas.resolution import (
     ResolutionResponse,
 )
 
+from app.schemas.dashboard import (
+    RecentCaseItem,
+    RequesterDashboardResponse,
+    OperatorDashboardResponse,
+    OperatorWorkloadItem,
+    TeamLeadDashboardResponse,
+    TeamPerformanceItem,
+    CategoryBreakdownItem,
+    ManagerDashboardResponse,
+    AdminDashboardResponse,
+)
+
 __all__ = [
     "UserRegister",
     "UserLogin",
@@ -103,6 +115,16 @@ __all__ = [
     "ResolutionConfirmRequest",
     "ResolutionRejectRequest",
     "ResolutionResponse",
+    "RecentCaseItem",
+    "RequesterDashboardResponse",
+    "OperatorDashboardResponse",
+    "OperatorWorkloadItem",
+    "TeamLeadDashboardResponse",
+    "TeamPerformanceItem",
+    "CategoryBreakdownItem",
+    "ManagerDashboardResponse",
+    "AdminDashboardResponse",
 ]
+
 
 
