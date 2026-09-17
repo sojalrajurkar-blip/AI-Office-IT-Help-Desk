@@ -1,0 +1,29 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Git and IDE configs
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Environment files and secrets
+.env
+*.local.env
+
+# Uploads and temporary test artifacts
+uploads/*
+!uploads/.gitkeep
+scratch/
+*.log
