@@ -25,12 +25,15 @@ class CaseLifecycleService:
         },
         CaseStatus.ASSIGNED: {
             CaseStatus.INVESTIGATING,
+            CaseStatus.ACTION_TAKEN,
+            CaseStatus.RESOLUTION_PROPOSED,
             CaseStatus.WAITING_FOR_INFO,
             CaseStatus.ESCALATED,
             CaseStatus.CANCELLED,
         },
         CaseStatus.INVESTIGATING: {
             CaseStatus.ACTION_TAKEN,
+            CaseStatus.RESOLUTION_PROPOSED,
             CaseStatus.WAITING_FOR_INFO,
             CaseStatus.ESCALATED,
             CaseStatus.CANCELLED,
@@ -43,6 +46,7 @@ class CaseLifecycleService:
         },
         CaseStatus.RESOLUTION_PROPOSED: {
             CaseStatus.CONFIRMED,
+            CaseStatus.CLOSED,
             CaseStatus.REOPENED,
             CaseStatus.INVESTIGATING,
         },
@@ -65,11 +69,14 @@ class CaseLifecycleService:
         CaseStatus.REOPENED: {
             CaseStatus.INVESTIGATING,
             CaseStatus.ASSIGNED,
+            CaseStatus.ACTION_TAKEN,
+            CaseStatus.RESOLUTION_PROPOSED,
             CaseStatus.WAITING_FOR_INFO,
         },
         CaseStatus.DUPLICATE: set(),
         CaseStatus.CANCELLED: set(),
     }
+
 
     @classmethod
     def validate_transition(cls, case: Case, new_status: CaseStatus, actor: User) -> None:

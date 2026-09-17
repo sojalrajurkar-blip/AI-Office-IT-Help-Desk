@@ -52,6 +52,13 @@ from app.schemas.notification import (
     NotificationMarkReadRequest,
 )
 
+from app.schemas.resolution import (
+    ResolutionProposeRequest,
+    ResolutionConfirmRequest,
+    ResolutionRejectRequest,
+    ResolutionResponse,
+)
+
 __all__ = [
     "UserRegister",
     "UserLogin",
@@ -92,5 +99,10 @@ __all__ = [
     "NotificationListResponse",
     "UnreadCountResponse",
     "NotificationMarkReadRequest",
+    "ResolutionProposeRequest",
+    "ResolutionConfirmRequest",
+    "ResolutionRejectRequest",
+    "ResolutionResponse",
 ]
+
 
