@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_roles
 from app.db.session import get_db
-from app.models.enums import UserRole, CaseStatus, MessageType
+from app.models.enums import UserRole, CaseStatus, MessageType, NotificationType
 from app.models.user import User
 from app.models.case import Case
 from app.models.communication import CaseMessage, InternalNote
@@ -18,6 +18,10 @@ from app.schemas.communication import (
     InternalNoteResponse,
 )
 from app.services.timeline_service import TimelineService
+from app.services.notification_service import (
+    create_notification,
+    create_team_notifications,
+)
 
 router = APIRouter(prefix="/cases", tags=["Case Communication & Notes"])
 
@@ -46,7 +50,7 @@ async def send_message(
     db.add(message)
     await db.flush()
 
-    # Automatic State Transition Handling:
+    # Automatic State Transition & Notification Handling:
     # 1. Operator requests info -> case transitions to WAITING_FOR_INFO
     if msg_type == MessageType.INFO_REQUEST and current_user.role != UserRole.REQUESTER:
         case.status = CaseStatus.WAITING_FOR_INFO
@@ -59,6 +63,16 @@ async def send_message(
             actor=current_user,
             details={"message_id": message.id, "preview": msg_in.content[:100]},
         )
+        if case.requester_id and case.requester_id != current_user.id:
+            await create_notification(
+                db=db,
+                user_id=case.requester_id,
+                notification_type=NotificationType.REQUESTER_RESPONSE,
+                title=f"Information Requested: {case.case_number}",
+                message=f"IT Support requested more details on case {case.case_number}.",
+                case_id=case.id,
+            )
+
     # 2. Requester responds -> if case was WAITING_FOR_INFO, resume to INVESTIGATING / UNDERSTOOD
     elif msg_type == MessageType.INFO_RESPONSE and current_user.role == UserRole.REQUESTER:
         if case.status == CaseStatus.WAITING_FOR_INFO:
@@ -72,6 +86,24 @@ async def send_message(
             actor=current_user,
             details={"message_id": message.id, "preview": msg_in.content[:100]},
         )
+        if case.assigned_operator_id:
+            await create_notification(
+                db=db,
+                user_id=case.assigned_operator_id,
+                notification_type=NotificationType.REQUESTER_RESPONSE,
+                title=f"Requester Response: {case.case_number}",
+                message=f"Requester {current_user.full_name} provided requested information for case {case.case_number}.",
+                case_id=case.id,
+            )
+        elif case.assigned_team_id:
+            await create_team_notifications(
+                db=db,
+                team_id=case.assigned_team_id,
+                notification_type=NotificationType.REQUESTER_RESPONSE,
+                title=f"Requester Response: {case.case_number}",
+                message=f"Requester {current_user.full_name} provided requested information for case {case.case_number}.",
+                case_id=case.id,
+            )
     else:
         await TimelineService.record_event(
             db=db,
@@ -81,8 +113,29 @@ async def send_message(
             actor=current_user,
             details={"message_id": message.id},
         )
+        if current_user.role == UserRole.REQUESTER:
+            if case.assigned_operator_id:
+                await create_notification(
+                    db=db,
+                    user_id=case.assigned_operator_id,
+                    notification_type=NotificationType.REQUESTER_RESPONSE,
+                    title=f"New Message: {case.case_number}",
+                    message=f"Requester {current_user.full_name} sent a message on case {case.case_number}.",
+                    case_id=case.id,
+                )
+        else:
+            if case.requester_id and case.requester_id != current_user.id:
+                await create_notification(
+                    db=db,
+                    user_id=case.requester_id,
+                    notification_type=NotificationType.REQUESTER_RESPONSE,
+                    title=f"New Message: {case.case_number}",
+                    message=f"{current_user.full_name} sent a message regarding case {case.case_number}.",
+                    case_id=case.id,
+                )
 
     await db.commit()
+
 
     # Load message with sender and attachments
     stmt = (

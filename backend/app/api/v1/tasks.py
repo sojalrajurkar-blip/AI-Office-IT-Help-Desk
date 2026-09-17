@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_roles
 from app.db.session import get_db
-from app.models.enums import UserRole, TaskStatus
+from app.models.enums import UserRole, TaskStatus, NotificationType
 from app.models.user import User
 from app.models.case import Case
 from app.models.task import CaseTask, InvestigationRecord
@@ -19,6 +19,7 @@ from app.schemas.task import (
     InvestigationRecordResponse,
 )
 from app.services.timeline_service import TimelineService
+from app.services.notification_service import create_notification
 
 router = APIRouter(tags=["Tasks & Investigation"])
 
@@ -59,8 +60,20 @@ async def create_task(
         details={"task_id": task.id, "title": task.title},
     )
 
+    # Dispatch notification if task is assigned to a specific user
+    if task_in.assigned_to_id and task_in.assigned_to_id != current_user.id:
+        await create_notification(
+            db=db,
+            user_id=task_in.assigned_to_id,
+            notification_type=NotificationType.NEW_TASK,
+            title=f"New Task: {task.title}",
+            message=f"You have been assigned task '{task.title}' for case {case.case_number}.",
+            case_id=case.id,
+        )
+
     await db.commit()
     return await get_task_by_id(task.id, db)
+
 
 
 @router.get("/cases/{case_id}/tasks", response_model=List[TaskResponse])

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_roles
 from app.db.session import get_db
-from app.models.enums import UserRole, CaseStatus, CasePriority, CaseSeverity
+from app.models.enums import UserRole, CaseStatus, CasePriority, CaseSeverity, NotificationType
 from app.models.user import User, Team
 from app.models.category import Category
 from app.models.case import Case, CaseSequence
@@ -24,6 +24,12 @@ from app.schemas.case import (
 )
 from app.services.case_lifecycle import CaseLifecycleService
 from app.services.timeline_service import TimelineService
+from app.services.notification_service import (
+    create_notification,
+    create_team_notifications,
+    create_role_notifications,
+)
+
 
 router = APIRouter(prefix="/cases", tags=["Case Management"])
 
@@ -110,10 +116,33 @@ async def create_case(
     )
     db.add(audit)
 
+    # 6. Dispatch Notifications
+    if default_team_id:
+        await create_team_notifications(
+            db=db,
+            team_id=default_team_id,
+            notification_type=NotificationType.NEW_CASE,
+            title=f"New Case: {case_number}",
+            message=f"A new case '{case.title}' has been submitted and routed to your team.",
+            case_id=case.id,
+            exclude_user_id=current_user.id,
+        )
+    else:
+        await create_role_notifications(
+            db=db,
+            roles=[UserRole.OPERATOR, UserRole.TEAM_LEAD, UserRole.MANAGER],
+            notification_type=NotificationType.NEW_CASE,
+            title=f"New Case: {case_number}",
+            message=f"A new unassigned case '{case.title}' has been reported.",
+            case_id=case.id,
+            exclude_user_id=current_user.id,
+        )
+
     await db.commit()
 
     # Return refreshed case with eager relations
     return await get_case_by_id(case.id, db)
+
 
 
 @router.get("/", response_model=CaseListResponse)
@@ -344,8 +373,30 @@ async def assign_case(
     )
     db.add(audit)
 
+    # Dispatch assignment notification
+    if case.assigned_operator_id and (case.assigned_operator_id != old_operator_id or old_operator_id is None):
+        await create_notification(
+            db=db,
+            user_id=case.assigned_operator_id,
+            notification_type=NotificationType.ASSIGNMENT,
+            title=f"Case Assigned: {case.case_number}",
+            message=f"You have been assigned to case {case.case_number}: {case.title}.",
+            case_id=case.id,
+        )
+    elif case.assigned_team_id and (case.assigned_team_id != old_team_id or old_team_id is None):
+        await create_team_notifications(
+            db=db,
+            team_id=case.assigned_team_id,
+            notification_type=NotificationType.ASSIGNMENT,
+            title=f"Team Case Assigned: {case.case_number}",
+            message=f"Case {case.case_number} has been assigned to your team.",
+            case_id=case.id,
+            exclude_user_id=current_user.id,
+        )
+
     await db.commit()
     return await get_case_by_id(case.id, db)
+
 
 
 @router.get("/{case_id}/timeline", response_model=List[TimelineEventResponse])

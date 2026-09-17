@@ -15,6 +15,7 @@ from app.models.enums import (
     MessageType,
     RiskLevel,
     UserRole,
+    NotificationType,
 )
 from app.models.sla import CaseEscalation, CaseRiskRecord, SLAPolicy
 from app.models.timeline_audit import TimelineEvent
@@ -25,6 +26,11 @@ from app.schemas.sla import (
     SLASweepSummaryResponse,
 )
 from app.services.timeline_service import TimelineService
+from app.services.notification_service import (
+    create_notification,
+    create_role_notifications,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +289,19 @@ class SLAService:
                 "reason": reason,
             },
         )
+
+        # Dispatch escalation notifications to supervisors
+        roles_to_notify = list({target_role, UserRole.TEAM_LEAD, UserRole.MANAGER, UserRole.ADMIN})
+        await create_role_notifications(
+            db=db,
+            roles=roles_to_notify,
+            notification_type=NotificationType.ESCALATION,
+            title=f"Case Escalated: {case.case_number}",
+            message=f"Case {case.case_number} has been escalated to {target_role.value} by {user.full_name}: {reason}",
+            case_id=case.id,
+            exclude_user_id=user.id,
+        )
+
         return escalation
 
     @staticmethod
@@ -336,6 +355,15 @@ class SLAService:
             if breached:
                 breaches += 1
                 updated_numbers.append(c.case_number)
+                if c.assigned_operator_id:
+                    await create_notification(
+                        db=db,
+                        user_id=c.assigned_operator_id,
+                        notification_type=NotificationType.SLA_WARNING,
+                        title=f"SLA Breached: {c.case_number}",
+                        message=f"Case {c.case_number} has breached its resolution SLA target.",
+                        case_id=c.id,
+                    )
 
             risk_rec = await SLAService.evaluate_case_risk(c, db)
             if risk_rec.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
@@ -351,6 +379,7 @@ class SLAService:
             at_risk_detected=at_risk,
             updated_cases=updated_numbers,
         )
+
 
 
 sla_service = SLAService()

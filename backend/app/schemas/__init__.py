@@ -43,6 +43,15 @@ from app.schemas.sla import (
     SLASweepSummaryResponse,
 )
 
+from app.schemas.notification import (
+    NotificationBase,
+    NotificationCreate,
+    NotificationRead,
+    NotificationListResponse,
+    UnreadCountResponse,
+    NotificationMarkReadRequest,
+)
+
 __all__ = [
     "UserRegister",
     "UserLogin",
@@ -77,4 +86,11 @@ __all__ = [
     "CaseEscalationResponse",
     "CaseEscalationResolveRequest",
     "SLASweepSummaryResponse",
+    "NotificationBase",
+    "NotificationCreate",
+    "NotificationRead",
+    "NotificationListResponse",
+    "UnreadCountResponse",
+    "NotificationMarkReadRequest",
 ]
+
